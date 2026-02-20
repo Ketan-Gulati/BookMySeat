@@ -15,10 +15,6 @@ const userSchema = new mongoose.Schema({
         trim: true,
         index: true,
     },
-    password:{
-        type: String,
-        required: [true, "password is required"],
-    },
     email:{
         type: String,
         required: true,
@@ -26,6 +22,10 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         trim: true,
         index: true,
+    },
+    password:{
+        type: String,
+        required: [true, "password is required"],
     },
     bookings:[{
         type: mongoose.Schema.Types.ObjectId,
@@ -44,8 +44,8 @@ const userSchema = new mongoose.Schema({
 
 
 //password hashing before saving
-userSchema.pre("save", async function(next){
-    if(!this.isModified('password')) return next();
+userSchema.pre("save", async function(){
+    if(!this.isModified('password')) return;
     this.password = await argon2.hash(this.password);
 })
 
