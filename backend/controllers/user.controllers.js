@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+
 
 
 //method to generate access and refresh token
@@ -90,7 +92,7 @@ const loginUser = asyncHandler(async(req, res)=>{
 
     if(!isPasswordValid) throw new ApiError(401, "Invalid user credentials");
 
-    const {accessToken, refreshToken} = generateTokens(user._id);
+    const {accessToken, refreshToken} = await generateTokens(user._id);
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
@@ -111,4 +113,72 @@ const loginUser = asyncHandler(async(req, res)=>{
     )
 })
 
-export {registerUser, loginUser};
+const logoutUser = asyncHandler(async(req, res)=>{
+    await User.findByIdAndUpdate(req.user._id, {
+        $unset: {
+            refreshToken: 1  // this removes the field from the document
+        }
+    },
+    {
+            new : true
+    }
+)
+
+    const options = {
+        httpOnly: true,
+        /* secure: true,
+        sameSite: "None", */
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    }
+
+    return res.status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, "Logged out successfully", {}));
+})
+
+const refreshAccessToken = asyncHandler(async(req,res)=>{
+    const incomingRefreshToken = req.cookies?.refreshToken;
+
+    if(!incomingRefreshToken){
+        throw new ApiError(401,"Refresh token not found");
+    }
+
+    const decodedToken = jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+    )
+
+    const user = await User.findById(decodedToken._id).select("+refreshToken");
+
+    if(!user){
+        throw new ApiError(401, "Invalid refresh token");
+    }
+
+    const valid = await argon2.verify(
+        user.refreshToken,
+        incomingRefreshToken
+    )
+
+    if(!valid){
+        throw new ApiError(401, "Refresh token mismatch");
+    }
+
+    const newAccessToken = user.generateAccessToken();
+
+    const options = {
+        httpOnly: true,
+        /* secure: true,
+        sameSite: "None", */
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken", newAccessToken)
+    .json(new ApiResponse(200,"Access token refershed", {}))
+})
+
+export {registerUser, loginUser,logoutUser,refreshAccessToken};
