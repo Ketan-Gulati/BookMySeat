@@ -23,3 +23,5 @@ const seatSchema = new mongoose.Schema({
         type: Date
     }
 })
+
+export const Seat = mongoose.model("Seat", seatSchema);
