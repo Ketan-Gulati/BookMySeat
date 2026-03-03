@@ -26,10 +26,6 @@ const movieSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    language:{
-        type: String,
-        required: true,
-    },
     createdBy: {
         type: mongoose.Types.ObjectId,
         required: true,

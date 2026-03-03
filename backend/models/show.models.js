@@ -11,6 +11,10 @@ const showSchema = new mongoose.Schema({
         ref: "Theatre",
         required: true
     },
+    language:{
+            type: String,
+            required: true,
+    },
     showDateTime:{
         type: Date,
         required: true,
@@ -26,6 +30,10 @@ const showSchema = new mongoose.Schema({
     availableSeats:{
         type: Number,
         required: true,
+    },
+    isActive:{
+        type: Boolean,
+        default: true
     }
 }, {timestamps: true})
 
