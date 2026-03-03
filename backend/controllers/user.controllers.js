@@ -4,6 +4,8 @@ import {asyncHandler} from "../utils/asyncHandler.js";
 import {ApiResponse} from "../utils/ApiResponse.js";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import { Movie } from "../models/movie.models.js";
+
 
 
 
@@ -181,4 +183,21 @@ const refreshAccessToken = asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200,"Access token refershed", {}))
 })
 
-export {registerUser, loginUser,logoutUser,refreshAccessToken};
+//get all movies
+const getMovies = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const movies = await Movie.find()
+    .select("-createdBy")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Movies fetched successfully", movies));
+});
+
+export {registerUser, loginUser,logoutUser,refreshAccessToken, getMovies};
