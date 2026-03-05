@@ -1,5 +1,6 @@
 //admin can control a new document for movie, theatre, show
 import { Movie } from "../models/movie.models.js";
+import { Theatre } from "../models/theatre.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import {
@@ -7,7 +8,6 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import mongoose from "mongoose";
 
 //movie management
 
@@ -57,7 +57,6 @@ const createMovie = asyncHandler(async (req, res) => {
 //update movie fields
 const updateMovie = asyncHandler(async (req, res) => {
   const { movieId } = req.params;
-
   const movie = await Movie.findById(movieId);
   if (!movie) {
     throw new ApiError(404, "Movie not found");
@@ -78,6 +77,10 @@ const updateMovie = asyncHandler(async (req, res) => {
     { new: true },
   );
 
+  if (!updatedMovie) {
+    throw new ApiError(500, "Error while updating movie");
+  }
+
   return res
     .status(200)
     .json(new ApiResponse(200, "Movie data updated", updatedMovie));
@@ -93,7 +96,7 @@ const deleteMovie = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Movie not found");
   }
 
-  const deleteResponse = await Movie.deleteOne({ _id: movieId });
+  const deleteResponse = await Movie.deleteOne({_id: movieId});
 
   if (!deleteResponse) {
     throw new ApiError(500, "Error while deleting the movie");
@@ -111,35 +114,117 @@ const getMovies = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const movies = await Movie.find()
+    .populate("createdBy", "fullName userName email")
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
+
+  if (!movies) {
+    throw new ApiError(500, "Error while fetching theatre data");
+  }
 
   return res
     .status(200)
     .json(new ApiResponse(200, "Movies fetched successfully", movies));
 });
 
-
 //theatre management
 
 //create theatre
-const createTheatre = asyncHandler(async(req, res)=>{
+const createTheatre = asyncHandler(async (req, res) => {
+  const { theatreName, location } = req.body;
+  if ([theatreName, location].some((field) => !field || field === "")) {
+    throw new ApiError(401, "All fields are required");
+  }
 
-})
+  const theatre = await Theatre.create({
+    theatreName,
+    location,
+    createdBy: req.user._id,
+  });
+
+  if (!theatre) {
+    throw new ApiError(500, "Error while creating theatre");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Theatre created successfully", theatre));
+});
 
 //update theatre
-const updateTheatre = asyncHandler(async(req, res)=>{
+const updateTheatre = asyncHandler(async (req, res) => {
+  const { theatreId } = req.params;
+  const theatre = await Theatre.findById(theatreId);
+  if (!theatre) {
+    throw new ApiError(404, "Theatre not found");
+  }
+  const updateData = { ...req.body };
 
-})
+  const updatedTheatre = await Theatre.findByIdAndUpdate(
+    theatreId,
+    {
+      $set: updateData,
+    },
+    {
+      new: true,
+    },
+  );
+
+  if (!updatedTheatre) {
+    throw new ApiError(500, "Error while updating theatre");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Theatre updated successfully", updatedTheatre));
+});
 
 //delete theatre
-const deleteTheatre = asyncHandler(async(req, res)=>{
+const deleteTheatre = asyncHandler(async (req, res) => {
+  const { theatreId } = req.params;
+  const theatre = await Theatre.findById(theatreId);
+  if (!theatre) {
+    throw new ApiError(404, "Theatre not found");
+  }
 
-})
+  const deleteResponse = await Theatre.deleteOne({_id: theatreId});
+
+  if (!deleteResponse) {
+    throw new ApiError(500, "Error while deleting theatre");
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Theatre deleted successfully", {}))
+});
 
 //get all theatres
-const getTheatres = asyncHandler(async(req, res)=>{
+const getTheatres = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
-})
-export { createMovie, updateMovie, deleteMovie, getMovies, createTheatre, updateTheatre, deleteTheatre, getTheatres };
+  const theatres = await Theatre.find()
+    .populate("createdBy", "fullName userName email")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  if (!theatres) {
+    throw new ApiError(500, "Error while fetching theatre data");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Theatre data fetched successfully", theatres));
+});
+
+export {
+  createMovie,
+  updateMovie,
+  deleteMovie,
+  getMovies,
+  createTheatre,
+  updateTheatre,
+  deleteTheatre,
+  getTheatres,
+};

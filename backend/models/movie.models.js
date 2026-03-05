@@ -1,4 +1,5 @@
 import mongoose, { mongo } from "mongoose";
+import { User } from "./user.models.js";
 
 const movieSchema = new mongoose.Schema({
     title:{
@@ -28,6 +29,7 @@ const movieSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Types.ObjectId,
+        ref: "User",
         required: true,
     }
 },{timestamps: true})
