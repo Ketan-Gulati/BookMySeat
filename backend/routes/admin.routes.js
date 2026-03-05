@@ -10,7 +10,11 @@ import {
   createTheatre,
   updateTheatre,
   deleteTheatre,
-  getTheatres
+  getTheatres,
+  createShow,
+  updateShow,
+  deleteShow,
+  getShows
 } from "../controllers/admin.controllers.js";
 
 const router = Router();
@@ -30,6 +34,12 @@ router.route("/theatres").post(verifyJWT, verifyAdmin, createTheatre)
 router.route("/theatres/:theatreId").patch(verifyJWT, verifyAdmin, updateTheatre)
 router.route("/theatres/:theatreId").delete(verifyJWT, verifyAdmin, deleteTheatre)
 router.route("/theatres").get(verifyJWT, verifyAdmin, getTheatres)
+
+//show management
+router.route("/shows").post(verifyJWT, verifyAdmin, createShow)
+router.route("/shows/:showId").patch(verifyJWT, verifyAdmin, updateShow)
+router.route("/shows/:showId").delete(verifyJWT, verifyAdmin, deleteShow)
+router.route("/shows").get(verifyJWT, verifyAdmin, getShows)
 
 
 export default router;

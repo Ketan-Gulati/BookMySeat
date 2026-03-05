@@ -9,7 +9,7 @@ import {
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-//movie management
+////movie management
 
 //create movie
 const createMovie = asyncHandler(async (req, res) => {
@@ -128,7 +128,10 @@ const getMovies = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Movies fetched successfully", movies));
 });
 
-//theatre management
+
+
+
+////theatre management
 
 //create theatre
 const createTheatre = asyncHandler(async (req, res) => {
@@ -218,6 +221,22 @@ const getTheatres = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Theatre data fetched successfully", theatres));
 });
 
+
+
+////show management
+
+//create show
+const createShow = asyncHandler(async(req, res)=>{});
+
+//update show
+const updateShow = asyncHandler(async(req, res)=>{});
+
+//delete show
+const deleteShow = asyncHandler(async(req, res)=>{});
+
+//get shows
+const getShows = asyncHandler(async(req, res)=>{});
+
 export {
   createMovie,
   updateMovie,
@@ -227,4 +246,8 @@ export {
   updateTheatre,
   deleteTheatre,
   getTheatres,
+  createShow,
+  updateShow,
+  deleteShow,
+  getShows
 };
