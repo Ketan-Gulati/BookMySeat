@@ -12,8 +12,8 @@ const showSchema = new mongoose.Schema({
         required: true
     },
     language:{
-            type: String,
-            required: true,
+        type: String,
+        required: true,
     },
     showDateTime:{
         type: Date,

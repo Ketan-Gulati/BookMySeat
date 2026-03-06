@@ -8,6 +8,8 @@ import {
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Show } from "../models/show.models.js";
+import { generateSeats } from "../utils/seat.service.js";
 
 ////movie management
 
@@ -96,7 +98,7 @@ const deleteMovie = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Movie not found");
   }
 
-  const deleteResponse = await Movie.deleteOne({_id: movieId});
+  const deleteResponse = await Movie.deleteOne({ _id: movieId });
 
   if (!deleteResponse) {
     throw new ApiError(500, "Error while deleting the movie");
@@ -127,9 +129,6 @@ const getMovies = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, "Movies fetched successfully", movies));
 });
-
-
-
 
 ////theatre management
 
@@ -191,13 +190,15 @@ const deleteTheatre = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Theatre not found");
   }
 
-  const deleteResponse = await Theatre.deleteOne({_id: theatreId});
+  const deleteResponse = await Theatre.deleteOne({ _id: theatreId });
 
   if (!deleteResponse) {
     throw new ApiError(500, "Error while deleting theatre");
   }
 
-  return res.status(200).json(new ApiResponse(200, "Theatre deleted successfully", {}))
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Theatre deleted successfully", {}));
 });
 
 //get all theatres
@@ -221,21 +222,67 @@ const getTheatres = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Theatre data fetched successfully", theatres));
 });
 
-
-
 ////show management
 
 //create show
-const createShow = asyncHandler(async(req, res)=>{});
+const createShow = asyncHandler(async (req, res) => {
+  const { movie, theatre, language, showDateTime, price, totalSeats } =
+    req.body;
+
+  if (
+    [movie, theatre, language, showDateTime, price, totalSeats].some(
+      (field) => !field || field === "",
+    )
+  ) {
+    throw new ApiError(400, "All fields are required");
+  }
+
+  const movieExists = await Movie.findById(movie);
+  if (!movieExists) {
+    throw new ApiError(404, "Movie does not exist");
+  }
+
+  const theatreExists = await Theatre.findById(theatre);
+  if (!theatreExists) {
+    throw new ApiError(404, "Theatre does not exist");
+  }
+
+  const existingShow = await Show.findOne({theatre, showDateTime});
+  if(existingShow){
+    throw new ApiError(409, "Show already exists for this time");
+  }
+
+  const show = await Show.create({
+    movie,
+    theatre,
+    language,
+    showDateTime,
+    price,
+    totalSeats,
+    availableSeats: totalSeats,
+  });
+
+  //optional extra check
+  if (!show) {
+    throw new ApiError(500, "Error while creating show");
+  }
+
+  //once the show is created, we would be generating seats automatically.... for this we would be a custom seat generation service
+  await generateSeats(show._id, totalSeats);
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, "Show created successfully", show))
+});
 
 //update show
-const updateShow = asyncHandler(async(req, res)=>{});
+const updateShow = asyncHandler(async (req, res) => {});
 
 //delete show
-const deleteShow = asyncHandler(async(req, res)=>{});
+const deleteShow = asyncHandler(async (req, res) => {});
 
 //get shows
-const getShows = asyncHandler(async(req, res)=>{});
+const getShows = asyncHandler(async (req, res) => {});
 
 export {
   createMovie,
@@ -249,5 +296,5 @@ export {
   createShow,
   updateShow,
   deleteShow,
-  getShows
+  getShows,
 };

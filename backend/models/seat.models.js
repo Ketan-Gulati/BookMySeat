@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const seatSchema = new mongoose.Schema({
     show:{
         type: mongoose.Types.ObjectId,
-        ref: "Movie",
+        ref: "Show",
         required: true,
     },
     seatNumber:{
