@@ -10,6 +10,7 @@ import {
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { Show } from "../models/show.models.js";
 import { generateSeats } from "../utils/seat.service.js";
+import { Seat } from "../models/seat.models.js";
 
 ////movie management
 
@@ -247,8 +248,8 @@ const createShow = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Theatre does not exist");
   }
 
-  const existingShow = await Show.findOne({theatre, showDateTime});
-  if(existingShow){
+  const existingShow = await Show.findOne({ theatre, showDateTime });
+  if (existingShow) {
     throw new ApiError(409, "Show already exists for this time");
   }
 
@@ -272,17 +273,83 @@ const createShow = asyncHandler(async (req, res) => {
 
   return res
     .status(201)
-    .json(new ApiResponse(201, "Show created successfully", show))
+    .json(new ApiResponse(201, "Show created successfully", show));
 });
 
 //update show
-const updateShow = asyncHandler(async (req, res) => {});
+const updateShow = asyncHandler(async (req, res) => {
+  const { showId } = req.params;
+  const show = await Show.findById(showId);
+  if (!show) {
+    throw new ApiError(404, "Show not found");
+  }
+
+  const updateFields = { ...req.body };
+
+  const updatedShow = await Show.findByIdAndUpdate(
+    showId,
+    {
+      $set: updateFields,
+    },
+    {
+      new: true,
+    },
+  );
+
+  if (!updatedShow) {
+    throw new ApiError(500, "Error while updating show");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Show updated successfully", updatedShow));
+});
 
 //delete show
-const deleteShow = asyncHandler(async (req, res) => {});
+const deleteShow = asyncHandler(async (req, res) => {
+  const { showId } = req.params;
+  const show = await Show.findById(showId);
+  if (!show) {
+    throw new ApiError(404, "Show not found");
+  }
+
+  const deleteResponse = await Show.deleteOne({ _id: showId });
+
+  if (!deleteResponse) {
+    throw new ApiError(500, "Error while deleting show");
+  }
+
+  //we also need to delete associated seats
+  const deleteSeatResponse = await Seat.deleteMany({show: showId});
+
+  if (!deleteSeatResponse) {
+    throw new ApiError(500, "Error while deleting seats");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Show deleted successfully", {}));
+});
 
 //get shows
-const getShows = asyncHandler(async (req, res) => {});
+const getShows = asyncHandler(async (req, res) => {
+  const {page} = parseInt(req.query.page) || 1;
+  const {limit} = parseInt(req.query.limit) || 10;
+  const skip = (page-1)*limit;
+
+  const shows = await Show.find()
+    .populate("movie", "title duration genre")
+    .populate("theatre", "theatreName location")
+    .limit(limit)
+    .skip(skip)
+    .sort({createdAt: -1})
+
+  if(!shows){
+    throw new ApiError(500, "Error while fetching shows");
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Shows fetched successfully", shows))
+});
 
 export {
   createMovie,
