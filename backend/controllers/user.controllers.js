@@ -1,187 +1,197 @@
 import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
-import {asyncHandler} from "../utils/asyncHandler.js";
-import {ApiResponse} from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import { Movie } from "../models/movie.models.js";
+import mongoose, { mongo } from "mongoose";
+import { Show } from "../models/show.models.js";
+import { Seat } from "../models/seat.models.js";
 
-
-
+////auth logic
 
 //method to generate access and refresh token
-const generateTokens = async(userId)=>{
-    try {
-        const user = await User.findById(userId);
-        const refreshToken =  user.generateRefreshToken();
-        const accessToken =  user.generateAccessToken();
-    
-        const hashedToken = await argon2.hash(refreshToken);  //to secure refresh token
-        user.refreshToken = hashedToken;
-        await user.save({validateBeforeSave : false})     //validateBeforeSave : false will not run any validations and directly save the token
-    
-        return {refreshToken, accessToken};
-    } catch (error) {
-        throw new ApiError(500, "Error while generating tokens");
-    }
-}
+const generateTokens = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const refreshToken = user.generateRefreshToken();
+    const accessToken = user.generateAccessToken();
 
-const registerUser = asyncHandler(async(req, res)=>{
-    const body = req.body;
+    const hashedToken = await argon2.hash(refreshToken); //to secure refresh token
+    user.refreshToken = hashedToken;
+    await user.save({ validateBeforeSave: false }); //validateBeforeSave : false will not run any validations and directly save the token
 
-    if(!body || Object.keys(req.body).length === 0) throw new ApiError(400, "Empty request body");
+    return { refreshToken, accessToken };
+  } catch (error) {
+    throw new ApiError(500, "Error while generating tokens");
+  }
+};
 
-    const {fullName, userName, email, password} = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+  const body = req.body;
 
-    //check if any field is absent
-    if([fullName, userName, email, password].some((field)=>
-        !field || field.trim()===""
-    )){
-        throw new ApiError(400, "Missing fields");
-    }
+  if (!body || Object.keys(req.body).length === 0)
+    throw new ApiError(400, "Empty request body");
 
-    //check if user with same email or username exists
-    const userExists = await User.findOne({
-        $or: [{userName}, {email}]
-    });
+  const { fullName, userName, email, password } = req.body;
 
-    if(userExists) throw new ApiError(409, "User with same email or username already exists");
+  //check if any field is absent
+  if (
+    [fullName, userName, email, password].some(
+      (field) => !field || field.trim() === "",
+    )
+  ) {
+    throw new ApiError(400, "Missing fields");
+  }
 
-    //create new user document
-    const newUser = await User.create({
-        fullName,
-        userName: userName.toLowerCase(),
-        email: email.toLowerCase(),
-        password
-    })
+  //check if user with same email or username exists
+  const userExists = await User.findOne({
+    $or: [{ userName }, { email }],
+  });
 
-    const createdUser = await User.findById(newUser._id).select("-password -refreshToken");
+  if (userExists)
+    throw new ApiError(409, "User with same email or username already exists");
 
-    if(!createdUser) throw new ApiError(500, "Something went wrong while trying to register");
+  //create new user document
+  const newUser = await User.create({
+    fullName,
+    userName: userName.toLowerCase(),
+    email: email.toLowerCase(),
+    password,
+  });
 
-    const {refreshToken, accessToken} =  await generateTokens(newUser._id);
+  const createdUser = await User.findById(newUser._id).select(
+    "-password -refreshToken",
+  );
 
-    const options = {
-        httpOnly: true,
-        /* secure: true,
+  if (!createdUser)
+    throw new ApiError(500, "Something went wrong while trying to register");
+
+  const { refreshToken, accessToken } = await generateTokens(newUser._id);
+
+  const options = {
+    httpOnly: true,
+    /* secure: true,
         sameSite: "None", */
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  };
 
-    return res.status(201)
+  return res
+    .status(201)
     .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json(
-        new ApiResponse(201,createdUser,"Registation successful")
-    )
-})
+    .json(new ApiResponse(201, createdUser, "Registation successful"));
+});
 
-const loginUser = asyncHandler(async(req, res)=>{
-    const {userName, email, password} = req.body;
+const loginUser = asyncHandler(async (req, res) => {
+  const { userName, email, password } = req.body;
 
-    if(!(email || userName)){
-        throw new ApiError(400, "Username or email is required");
-    }
+  if (!(email || userName)) {
+    throw new ApiError(400, "Username or email is required");
+  }
 
-    const user = await User.findOne({
-        $or: [{email}, {userName}]
-    })
+  const user = await User.findOne({
+    $or: [{ email }, { userName }],
+  });
 
-    if(!user) throw new ApiError(401, "User not found");
+  if (!user) throw new ApiError(401, "User not found");
 
-    const isPasswordValid = await user.isCorrectPassword(password);
+  const isPasswordValid = await user.isCorrectPassword(password);
 
-    if(!isPasswordValid) throw new ApiError(401, "Invalid user credentials");
+  if (!isPasswordValid) throw new ApiError(401, "Invalid user credentials");
 
-    const {accessToken, refreshToken} = await generateTokens(user._id);
+  const { accessToken, refreshToken } = await generateTokens(user._id);
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken",
+  );
 
-    const options = {
-        httpOnly: true,
-        /* secure: true,
+  const options = {
+    httpOnly: true,
+    /* secure: true,
         sameSite: "None", */
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  };
 
-    return res.
-    status(200)
-    .cookie("accessToken",accessToken,options) 
-    .cookie("refreshToken",refreshToken,options)
-    .json(
-        new ApiResponse(200, "User logged in successfully", loggedInUser)
-    )
-})
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(new ApiResponse(200, "User logged in successfully", loggedInUser));
+});
 
-const logoutUser = asyncHandler(async(req, res)=>{
-    await User.findByIdAndUpdate(req.user._id, {
-        $unset: {
-            refreshToken: 1  // this removes the field from the document
-        }
+const logoutUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $unset: {
+        refreshToken: 1, // this removes the field from the document
+      },
     },
     {
-            new : true
-    }
-)
+      new: true,
+    },
+  );
 
-    const options = {
-        httpOnly: true,
-        /* secure: true,
+  const options = {
+    httpOnly: true,
+    /* secure: true,
         sameSite: "None", */
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  };
 
-    return res.status(200)
+  return res
+    .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
     .json(new ApiResponse(200, "Logged out successfully", {}));
-})
+});
 
-const refreshAccessToken = asyncHandler(async(req,res)=>{
-    const incomingRefreshToken = req.cookies?.refreshToken;
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies?.refreshToken;
 
-    if(!incomingRefreshToken){
-        throw new ApiError(401,"Refresh token not found");
-    }
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Refresh token not found");
+  }
 
-    const decodedToken = jwt.verify(
-        incomingRefreshToken,
-        process.env.REFRESH_TOKEN_SECRET
-    )
+  const decodedToken = jwt.verify(
+    incomingRefreshToken,
+    process.env.REFRESH_TOKEN_SECRET,
+  );
 
-    const user = await User.findById(decodedToken._id).select("+refreshToken");
+  const user = await User.findById(decodedToken._id).select("+refreshToken");
 
-    if(!user){
-        throw new ApiError(401, "Invalid refresh token");
-    }
+  if (!user) {
+    throw new ApiError(401, "Invalid refresh token");
+  }
 
-    const valid = await argon2.verify(
-        user.refreshToken,
-        incomingRefreshToken
-    )
+  const valid = await argon2.verify(user.refreshToken, incomingRefreshToken);
 
-    if(!valid){
-        throw new ApiError(401, "Refresh token mismatch");
-    }
+  if (!valid) {
+    throw new ApiError(401, "Refresh token mismatch");
+  }
 
-    const newAccessToken = user.generateAccessToken();
+  const newAccessToken = user.generateAccessToken();
 
-    const options = {
-        httpOnly: true,
-        /* secure: true,
+  const options = {
+    httpOnly: true,
+    /* secure: true,
         sameSite: "None", */
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-    }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+  };
 
-    return res
+  return res
     .status(200)
     .cookie("accessToken", newAccessToken, options)
-    .json(new ApiResponse(200,"Access token refershed", {}))
-})
+    .json(new ApiResponse(200, "Access token refershed", {}));
+});
+
+////core logic
 
 //get all movies
 const getMovies = asyncHandler(async (req, res) => {
@@ -200,4 +210,170 @@ const getMovies = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Movies fetched successfully", movies));
 });
 
-export {registerUser, loginUser,logoutUser,refreshAccessToken, getMovies};
+//get movie details
+const getMovieDesc = asyncHandler(async (req, res) => {
+  const { movieId } = req.params;
+  const movie = await Movie.findById(movieId).select("-createdBy");
+  if (!movie) {
+    throw new ApiError(404, "Movie not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Movie description fetched successfuly", movie));
+});
+
+//get shows by movie id
+const getShowsByMovieId = asyncHandler(async (req, res) => {
+  const { movieId } = req.params;
+  const movie = await Movie.findById(movieId);
+  if (!movie) {
+    throw new ApiError(404, "Movie not found");
+  }
+
+  const shows = await Show.aggregate([
+    {
+      $match: {
+        movie: new mongoose.Types.ObjectId(movieId),
+      },
+    },
+    {
+      $lookup: {
+        from: "theatres",
+        localField: "theatre",
+        foreignField: "_id",
+        as: "theatre",
+      },
+    },
+    {
+      $unwind: "$theatre",
+    },
+    {
+      $group: {
+        _id: "$theatre._id",
+        theatreName: { $first: "$theatre.theatreName" },
+        location: { $first: "$theatre.location" },
+        shows: {
+          $push: {
+            showId: "$_id",
+            time: "$showDateTime",
+            price: "$price",
+            language: "$language",
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0, //we hid default id generated by monogdb bcz we would need theatre objectId
+        theatreId: "$_id", //rename _id
+        theatreName: 1,
+        location: 1,
+        shows: 1,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Shows fetched successfully", shows));
+});
+
+//get seats for particular show
+const getShowSeats = asyncHandler(async (req, res) => {
+  const { showId } = req.params;
+  const show = await Show.findById(showId);
+  if (!show) {
+    throw new ApiError(404, "Show not found");
+  }
+
+  const seats = await Seat.find({ show: showId })
+    .select("-show")
+    .sort({ seatNumber: 1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Seats fetched successfully", seats));
+});
+
+//lock the selected seats with concurrency checks...preveents race conditions
+const lockSeats = asyncHandler(async (req, res) => {
+  const { showId, seats } = req.body; //an array of seatIds will be received
+  // console.log(seats);
+
+  if (!Array.isArray(seats)) {
+    throw new ApiError(400, "Seats must be an array");
+  }
+
+  if (!seats || seats.length === 0) {
+    throw new ApiError(400, "No seats selected");
+  }
+
+  const seatsFromDB = await Seat.find({
+    _id: { $in: seats },
+  });
+  //security check if seats belong to same show or not
+  const invalidSeat = seatsFromDB.find(
+    (seat) => seat.show.toString() !== showId,
+  );
+
+  if (invalidSeat) {
+    throw new ApiError(400, "Seats do not belong to this show");
+  }
+
+  //additional security check
+  if (seatsFromDB.length !== seats.length) {
+    throw new ApiError(400, "Invalid seat IDs");
+  }
+
+  const lockedSeats = [];
+
+  for (let seatId of seats) {
+    /* const seat = await Seat.findById(seatId);     //this line is bad for concurrency, it will lead to double bookings...we better use just atomic update with condition
+    if (!seat) {                               
+      throw new ApiError(404, "Seat not found");
+    } */
+
+    const seat = await Seat.findOneAndUpdate(
+      { _id: seatId, status: "AVAILABLE" },
+      {
+        status: "LOCKED",
+        lockedBy: req.user._id,
+        lockExpiry: new Date(Date.now() + 5 * 60 * 1000),
+      },
+      {
+        new: true,
+      },
+    );
+
+    if (!seat) {
+      throw new ApiError(409, "Seat already booked or locked");
+    }
+
+    lockedSeats.push(seat);
+  }
+
+  return res
+    .status(201)
+    .json(new ApiResponse(201, "Seats locked successfully", lockedSeats));
+});
+
+//after payment succeeds, confirm booking
+const confirmBooking = asyncHandler(async(req, res)=>{
+
+})
+
+
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  getMovies,
+  getMovieDesc,
+  getShowsByMovieId,
+  getShowSeats,
+  lockSeats,
+  confirmBooking
+};

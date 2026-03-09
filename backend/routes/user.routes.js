@@ -1,6 +1,11 @@
 import { Router } from "express";
 import {
+  confirmBooking,
+  getMovieDesc,
   getMovies,
+  getShowsByMovieId,
+  getShowSeats,
+  lockSeats,
   loginUser,
   logoutUser,
   refreshAccessToken,
@@ -14,6 +19,16 @@ router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
 router.route("/logout").patch(verifyJWT, logoutUser);
 router.route("/refreshAccessToken").patch(refreshAccessToken);
-router.route("/movies").get(verifyJWT, getMovies);
+//movie routes
+router.route("/movies").get(getMovies);
+router.route("/movies/:movieId").get(getMovieDesc);
+router.route("/movies/:movieId/shows").get(getShowsByMovieId);
+
+//seat and seat locking
+router.route("/shows/:showId/seat-layout").get(verifyJWT, getShowSeats);
+router.route("/seats/lock").post(verifyJWT, lockSeats)
+
+//confirm booking
+router.route("/booking/confirm").post(verifyJWT, confirmBooking)
 
 export default router;
