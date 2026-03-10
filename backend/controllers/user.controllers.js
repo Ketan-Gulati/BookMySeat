@@ -8,6 +8,7 @@ import { Movie } from "../models/movie.models.js";
 import mongoose, { mongo } from "mongoose";
 import { Show } from "../models/show.models.js";
 import { Seat } from "../models/seat.models.js";
+import { Booking } from "../models/bookings.models.js";
 
 ////auth logic
 
@@ -358,9 +359,9 @@ const lockSeats = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, "Seats locked successfully", lockedSeats));
 });
 
-//after payment succeeds, confirm booking
+//after payment succeeds, confirm booking and also create a booking
 const confirmBooking = asyncHandler(async (req, res) => {
-  const { lockedSeats } = req.body;
+  const { showId, lockedSeats } = req.body;
 
   if (!lockedSeats || lockedSeats.length === 0) {
     throw new ApiError(400, "No seats locked");
@@ -396,9 +397,21 @@ const confirmBooking = asyncHandler(async (req, res) => {
     },
   );
 
+  //calculate total price
+  const show = await Show.findById(showId);
+  const totalAmount = show.price * lockedSeats.length;
+
+  const booking = await Booking.create({
+    user: req.user._id,
+    show: showId,
+    seats: lockedSeats,
+    totalAmount,
+    paymentStatus: "SUCCESS"
+  })
+
   return res
     .status(200)
-    .json(new ApiResponse(200, "Seats booked successfully", lockedSeats));
+    .json(new ApiResponse(200, "Seats booked successfully", booking));
 });
 
 export {
