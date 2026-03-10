@@ -372,6 +372,10 @@ const confirmBooking = asyncHandler(async (req, res) => {
   });
 
   for (let seat of seatsFromDB) {
+    if (seat.status === "BOOKED") {
+      throw new ApiError(409, "Seat already booked");
+    }
+
     if (seat.status !== "LOCKED") {
       throw new ApiError(409, "Seat not locked");
     }
@@ -406,12 +410,33 @@ const confirmBooking = asyncHandler(async (req, res) => {
     show: showId,
     seats: lockedSeats,
     totalAmount,
-    paymentStatus: "SUCCESS"
-  })
+    paymentStatus: "SUCCESS",
+  });
 
   return res
     .status(200)
     .json(new ApiResponse(200, "Seats booked successfully", booking));
+});
+
+//get user booking history
+const bookingHistory = asyncHandler(async (req, res) => {
+  const bookings = await Booking.find({ user: req.user._id })
+    .populate({
+      path: "show",
+      populate: [
+        //to populate deeply
+        { path: "movie" },
+        { path: "theatre" },
+      ],
+    })
+    .populate("seats")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, "Booking history fetched successfully", bookings),
+    );
 });
 
 export {
@@ -425,4 +450,5 @@ export {
   getShowSeats,
   lockSeats,
   confirmBooking,
+  bookingHistory,
 };

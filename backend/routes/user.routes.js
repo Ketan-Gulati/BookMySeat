@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  bookingHistory,
   confirmBooking,
   getMovieDesc,
   getMovies,
@@ -30,5 +31,8 @@ router.route("/seats/lock").post(verifyJWT, lockSeats)
 
 //confirm booking
 router.route("/booking/confirm").post(verifyJWT, confirmBooking)
+
+//booking history
+router.route("/booking-history").get(verifyJWT, bookingHistory)
 
 export default router;
