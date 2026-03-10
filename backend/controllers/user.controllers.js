@@ -359,11 +359,47 @@ const lockSeats = asyncHandler(async (req, res) => {
 });
 
 //after payment succeeds, confirm booking
-const confirmBooking = asyncHandler(async(req, res)=>{
+const confirmBooking = asyncHandler(async (req, res) => {
+  const { lockedSeats } = req.body;
 
-})
+  if (!lockedSeats || lockedSeats.length === 0) {
+    throw new ApiError(400, "No seats locked");
+  }
 
+  const seatsFromDB = await Seat.find({
+    _id: { $in: lockedSeats },
+  });
 
+  for (let seat of seatsFromDB) {
+    if (seat.status !== "LOCKED") {
+      throw new ApiError(409, "Seat not locked");
+    }
+    if (seat.lockedBy.toString() !== req.user._id.toString()) {
+      throw new ApiError(403, "Seat locked by another user");
+    }
+    if (seat.lockExpiry < new Date()) {
+      throw new ApiError(403, "Seat lock expired");
+    }
+  }
+
+  await Seat.updateMany(
+    //updateMany because we might be updating multiple seat status at once
+    {
+      _id: { $in: lockedSeats },
+    },
+    {
+      $set: {
+        status: "BOOKED",
+        lockedBy: null,
+        lockExpiry: null,
+      },
+    },
+  );
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Seats booked successfully", lockedSeats));
+});
 
 export {
   registerUser,
@@ -375,5 +411,5 @@ export {
   getShowsByMovieId,
   getShowSeats,
   lockSeats,
-  confirmBooking
+  confirmBooking,
 };
