@@ -306,6 +306,12 @@ const lockSeats = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Seats must be an array");
   }
 
+  const MAX_SEATS = 10;
+
+  if (seats.length > MAX_SEATS) {
+    throw new ApiError(400, `You can book maximum ${MAX_SEATS} seats`);
+  }
+
   if (!seats || seats.length === 0) {
     throw new ApiError(400, "No seats selected");
   }
@@ -363,6 +369,12 @@ const lockSeats = asyncHandler(async (req, res) => {
 const confirmBooking = asyncHandler(async (req, res) => {
   const { showId, lockedSeats } = req.body;
 
+  const show = await Show.findById(showId);
+
+  if (show.availableSeats < lockedSeats.length) {
+    throw new ApiError(409, "Not enough seats available");
+  }
+
   if (!lockedSeats || lockedSeats.length === 0) {
     throw new ApiError(400, "No seats locked");
   }
@@ -401,8 +413,11 @@ const confirmBooking = asyncHandler(async (req, res) => {
     },
   );
 
+  await Show.findByIdAndUpdate(showId, {
+    $inc: { availableSeats: -lockedSeats.length },
+  });
+
   //calculate total price
-  const show = await Show.findById(showId);
   const totalAmount = show.price * lockedSeats.length;
 
   const booking = await Booking.create({

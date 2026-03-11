@@ -48,7 +48,7 @@ router.route("/shows").get(verifyJWT, verifyAdmin, getShows)
 //booking management
 router.route("/bookings/movies").get(verifyJWT, verifyAdmin, getBookingMovies)
 router.route("/bookings/theatres/:movieId").get(verifyJWT, verifyAdmin, getBookingTheatres)
-router.route("/bookings/shows?movieId=&theatreId=").get(verifyJWT, verifyAdmin, getBookingShows)
+router.route("/bookings/shows").get(verifyJWT, verifyAdmin, getBookingShows)
 router.route("/bookings/shows/:showId").get(verifyJWT, verifyAdmin, getShowBookings)
 
 export default router;
