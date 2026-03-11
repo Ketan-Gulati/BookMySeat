@@ -14,7 +14,11 @@ import {
   createShow,
   updateShow,
   deleteShow,
-  getShows
+  getShows,
+  getBookingMovies,
+  getBookingTheatres,
+  getBookingShows,
+  getShowBookings
 } from "../controllers/admin.controllers.js";
 
 const router = Router();
@@ -41,5 +45,10 @@ router.route("/shows/:showId").patch(verifyJWT, verifyAdmin, updateShow)
 router.route("/shows/:showId").delete(verifyJWT, verifyAdmin, deleteShow)
 router.route("/shows").get(verifyJWT, verifyAdmin, getShows)
 
+//booking management
+router.route("/bookings/movies").get(verifyJWT, verifyAdmin, getBookingMovies)
+router.route("/bookings/theatres/:movieId").get(verifyJWT, verifyAdmin, getBookingTheatres)
+router.route("/bookings/shows?movieId=&theatreId=").get(verifyJWT, verifyAdmin, getBookingShows)
+router.route("/bookings/shows/:showId").get(verifyJWT, verifyAdmin, getShowBookings)
 
 export default router;

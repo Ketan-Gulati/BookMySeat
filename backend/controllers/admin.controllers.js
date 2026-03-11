@@ -11,6 +11,8 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Show } from "../models/show.models.js";
 import { generateSeats } from "../utils/seat.service.js";
 import { Seat } from "../models/seat.models.js";
+import { Booking } from "../models/bookings.models.js";
+import mongoose from "mongoose";
 
 ////movie management
 
@@ -320,7 +322,7 @@ const deleteShow = asyncHandler(async (req, res) => {
   }
 
   //we also need to delete associated seats
-  const deleteSeatResponse = await Seat.deleteMany({show: showId});
+  const deleteSeatResponse = await Seat.deleteMany({ show: showId });
 
   if (!deleteSeatResponse) {
     throw new ApiError(500, "Error while deleting seats");
@@ -333,22 +335,134 @@ const deleteShow = asyncHandler(async (req, res) => {
 
 //get shows
 const getShows = asyncHandler(async (req, res) => {
-  const {page} = parseInt(req.query.page) || 1;
-  const {limit} = parseInt(req.query.limit) || 10;
-  const skip = (page-1)*limit;
+  const { page } = parseInt(req.query.page) || 1;
+  const { limit } = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
 
   const shows = await Show.find()
     .populate("movie", "title duration genre")
     .populate("theatre", "theatreName location")
     .limit(limit)
     .skip(skip)
-    .sort({createdAt: -1})
+    .sort({ createdAt: -1 });
 
-  if(!shows){
+  if (!shows) {
     throw new ApiError(500, "Error while fetching shows");
   }
 
-  return res.status(200).json(new ApiResponse(200, "Shows fetched successfully", shows))
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Shows fetched successfully", shows));
+});
+
+//get movies for which bookings exist
+const getBookingMovies = asyncHandler(async (req, res) => {
+  const movies = await Booking.aggregate([
+    {
+      $lookup: {
+        from: "shows",
+        localField: "show",
+        foreignField: "_id",
+        as: "show",
+      },
+    },
+    {
+      $unwind: "$show",
+    },
+    {
+      $lookup: {
+        from: "movies",
+        localField: "show.movie",
+        foreignField: "_id",
+        as: "movie",
+      },
+    },
+    {
+      $unwind: "$movie",
+    },
+    {
+      $group: {
+        _id: "$movie._id",
+        title: { $first: "$movie.title" },
+        coverImage: { $first: "$movie.coverImage" },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Movies fetched successfully", movies));
+});
+
+//get theatres for a selected movie - bookings
+const getBookingTheatres = asyncHandler(async (req, res) => {
+  const { movieId } = req.params;
+
+  const theatres = await Booking.aggregate([
+    {
+      $lookup: {
+        from: "shows",
+        localField: "show",
+        foreignField: "_id",
+        as: "show",
+      },
+    },
+    { $unwind: "$show" },
+
+    {
+      $match: {
+        "show.movie": new mongoose.Types.ObjectId(movieId),
+      },
+    },
+
+    {
+      $lookup: {
+        from: "theatres",
+        localField: "show.theatre",
+        foreignField: "_id",
+        as: "theatre",
+      },
+    },
+    { $unwind: "$theatre" },
+
+    {
+      $group: {
+        _id: "$theatre._id",
+        theatreName: { $first: "$theatre.theatreName" },
+        location: { $first: "$theatre.location" },
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Theatres fetched", theatres));
+});
+
+//get shows for selected movie and theatre - bookings
+const getBookingShows = asyncHandler(async (req, res) => {
+  const { movieId, theatreId } = req.query;
+
+  const shows = await Show.find({
+    movie: movieId,
+    theatre: theatreId,
+  }).select("showDateTime price");
+
+  return res.status(200).json(new ApiResponse(200, "Shows fetched", shows));
+});
+
+//get bookings for selected show - bookings
+const getShowBookings = asyncHandler(async (req, res) => {
+  const { showId } = req.params;
+
+  const bookings = await Booking.find({ show: showId })
+    .populate("user", "fullName email")
+    .populate("seats", "seatNumber")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Bookings fetched", bookings));
 });
 
 export {
@@ -364,4 +478,8 @@ export {
   updateShow,
   deleteShow,
   getShows,
+  getBookingMovies,
+  getBookingTheatres,
+  getBookingShows,
+  getShowBookings
 };
