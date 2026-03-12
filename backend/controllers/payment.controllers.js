@@ -95,6 +95,11 @@ const confirmPayment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Payment record not found");
   }
 
+  //to prevent double verification and hence double booking
+  if (payment.status === "SUCCESS") {
+    throw new ApiError(409, "Payment already verified");
+  }
+
   // update payment
   payment.paymentId = paymentId;
   payment.razorpaySignature = signature;
