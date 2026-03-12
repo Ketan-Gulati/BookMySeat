@@ -14,7 +14,9 @@ app.use(cookieParser())
 //import routes
 import userRoutes from "./routes/user.routes.js"
 import adminRoutes from "./routes/admin.routes.js"
+import paymentRoutes from "./routes/payment.routes.js"
 
 //routes declaration
 app.use("/user", userRoutes);
 app.use("/admin", adminRoutes);
+app.use("/payments", paymentRoutes);

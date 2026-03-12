@@ -366,7 +366,7 @@ const lockSeats = asyncHandler(async (req, res) => {
 });
 
 //after payment succeeds, confirm booking and also create a booking
-const confirmBooking = asyncHandler(async (req, res) => {
+/* const confirmBooking = asyncHandler(async (req, res) => {
   const { showId, lockedSeats } = req.body;
 
   const show = await Show.findById(showId);
@@ -431,7 +431,7 @@ const confirmBooking = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "Seats booked successfully", booking));
-});
+}); */
 
 //get user booking history
 const bookingHistory = asyncHandler(async (req, res) => {
@@ -464,6 +464,6 @@ export {
   getShowsByMovieId,
   getShowSeats,
   lockSeats,
-  confirmBooking,
+  // confirmBooking,
   bookingHistory,
 };
