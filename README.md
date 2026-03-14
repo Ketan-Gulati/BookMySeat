@@ -181,3 +181,88 @@ After successful verification:
  3. lock metadata is cleared
  4. booking document is create
 
+Environment Variables
+
+Create a .env file inside the backend folder and add:
+
+PORT=8000
+MONGODB_URI=your_mongodb_connection_string
+ACCESS_TOKEN_SECRET=your_access_token_secret
+ACCESS_TOKEN_EXPIRY=1d
+REFRESH_TOKEN_SECRET=your_refresh_token_secret
+REFRESH_TOKEN_EXPIRY=10d
+RAZORPAY_API_KEY=your_razorpay_key
+RAZORPAY_API_SECRET=your_razorpay_secret
+CORS_ORIGIN=*
+
+Adjust variable names if your project uses slightly different names.
+
+Installation & Setup
+1. Clone the repository
+git clone https://github.com/Ketan-Gulati/BookMySeat.git
+cd BookMySeat/backend
+2. Install dependencies
+npm install
+3. Add environment variables
+
+Create a .env file inside the backend directory.
+
+4. Start the server
+npm run dev
+
+or
+
+npm start
+Important Notes
+
+This repository currently contains the backend implementation.
+
+Razorpay is integrated in test mode.
+
+Seat booking safety depends on backend validation, not only frontend disabling.
+
+Expired locked seats are automatically released by a cron job.
+
+The project is designed to demonstrate real-world backend concepts like concurrency-safe booking, atomic updates, and payment verification.
+
+Future Improvements
+
+Frontend integration
+
+Booking cancellation
+
+Refund handling
+
+Admin revenue analytics
+
+Request validation
+
+Rate limiting
+
+Redis-based distributed locking for higher scale
+
+Learning Highlights
+
+This project helped implement and understand:
+
+role-based backend architecture
+
+MongoDB aggregation
+
+atomic updates
+
+concurrency-safe seat locking
+
+cron-based background cleanup
+
+payment gateway integration
+
+secure payment verification flow
+
+Author
+
+Ketan Gulati
+
+GitHub: Ketan-Gulati
+
+LinkedIn: ketan-gulati-9a4233239
