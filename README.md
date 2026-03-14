@@ -71,8 +71,6 @@ backend/
 │── index.js        # Server entry point
 │── constants.js    # Shared constants
 
-```
-
 Core Backend Logic
 
 1. Seat Generation
