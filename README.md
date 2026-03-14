@@ -215,54 +215,36 @@ or
 npm start
 Important Notes
 
-This repository currently contains the backend implementation.
-
-Razorpay is integrated in test mode.
-
-Seat booking safety depends on backend validation, not only frontend disabling.
-
-Expired locked seats are automatically released by a cron job.
-
-The project is designed to demonstrate real-world backend concepts like concurrency-safe booking, atomic updates, and payment verification.
+ • This repository currently contains the backend implementation.
+ • Razorpay is integrated in test mode.
+ • Seat booking safety depends on backend validation, not only frontend disabling.
+ • Expired locked seats are automatically released by a cron job.
+ • The project is designed to demonstrate real-world backend concepts like concurrency-safe booking, atomic updates, and payment verification.
 
 Future Improvements
 
-Frontend integration
-
-Booking cancellation
-
-Refund handling
-
-Admin revenue analytics
-
-Request validation
-
-Rate limiting
-
-Redis-based distributed locking for higher scale
+ • Frontend integration
+ • Booking cancellation
+ • Refund handling
+ • Admin revenue analytics
+ • Request validation
+ • Rate limiting
+ • Redis-based distributed locking for higher scale
 
 Learning Highlights
 
-This project helped implement and understand:
-
-role-based backend architecture
-
-MongoDB aggregation
-
-atomic updates
-
-concurrency-safe seat locking
-
-cron-based background cleanup
-
-payment gateway integration
-
-secure payment verification flow
+ • This project helped implement and understand:
+ • role-based backend architecture
+ • MongoDB aggregation
+ • atomic updates
+ • concurrency-safe seat locking
+ • cron-based background cleanup
+ • payment gateway integration
+ • secure payment verification flow
 
 Author
 
 Ketan Gulati
-
 GitHub: Ketan-Gulati
 
 LinkedIn: ketan-gulati-9a4233239
