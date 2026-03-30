@@ -355,6 +355,8 @@ const getShows = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Shows fetched successfully", shows));
 });
 
+////booking management
+
 //get movies for which bookings exist
 const getBookingMovies = asyncHandler(async (req, res) => {
   const movies = await Booking.aggregate([
@@ -439,7 +441,7 @@ const getBookingTheatres = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Theatres fetched", theatres));
 });
 
-//get shows for selected movie and theatre - bookings
+//get shows for selected movie and theatre
 const getBookingShows = asyncHandler(async (req, res) => {
   const { movieId, theatreId } = req.query;
 

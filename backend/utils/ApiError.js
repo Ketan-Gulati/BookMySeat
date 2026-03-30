@@ -5,7 +5,8 @@ class ApiError extends Error{
         errors=[],
         stack=""
     ){
-        super(message)    //this calls the parent Error constructor.
+        super(message)    //this calls the constructor of parent class(Error) .
+        //following are all custom fields
         this.statusCode=statusCode
         this.errors=errors
         this.data=null

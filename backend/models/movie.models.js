@@ -1,5 +1,4 @@
-import mongoose, { mongo } from "mongoose";
-import { User } from "./user.models.js";
+import mongoose from "mongoose";
 
 const movieSchema = new mongoose.Schema({
     title:{
