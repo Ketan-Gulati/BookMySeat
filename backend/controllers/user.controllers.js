@@ -333,36 +333,50 @@ const lockSeats = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid seat IDs");
   }
 
-  const lockedSeats = [];
+  const session = await mongoose.startSession();   //to group all DB ops
+  session.startTransaction();
 
-  for (let seatId of seats) {
-    /* const seat = await Seat.findById(seatId);     //this line is bad for concurrency, it will lead to double bookings...we better use just atomic update with condition
-    if (!seat) {                               
-      throw new ApiError(404, "Seat not found");
-    } */
-
-    const seat = await Seat.findOneAndUpdate(
-      { _id: seatId, status: "AVAILABLE" },
-      {
-        status: "LOCKED",
-        lockedBy: req.user._id,
-        lockExpiry: new Date(Date.now() + 5 * 60 * 1000),
-      },
-      {
-        new: true,
-      },
-    );
-
-    if (!seat) {
-      throw new ApiError(409, "Seat already booked or locked");
+  //for sessions and transactions we need to use try catch
+  try {
+    const lockedSeats = [];
+  
+    for (let seatId of seats) {
+      /* const seat = await Seat.findById(seatId);     //this line is bad for concurrency, it will lead to double bookings...we better use just atomic update with condition
+      if (!seat) {                               
+        throw new ApiError(404, "Seat not found");
+      } */
+  
+      const seat = await Seat.findOneAndUpdate(
+        { _id: seatId, status: "AVAILABLE", show: showId },
+        {
+          status: "LOCKED",
+          lockedBy: req.user._id,
+          lockExpiry: new Date(Date.now() + 5 * 60 * 1000),
+        },
+        {
+          new: true,
+          session,
+        },
+      );
+  
+      if (!seat) {
+        throw new ApiError(409, "Seat already booked or locked");
+      }
+  
+      lockedSeats.push(seat);
     }
-
-    lockedSeats.push(seat);
+  
+    await session.commitTransaction();
+  
+    return res
+      .status(201)
+      .json(new ApiResponse(201, "Seats locked successfully", lockedSeats));
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  }finally{
+    session.endSession();
   }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, "Seats locked successfully", lockedSeats));
 });
 
 //after payment succeeds, confirm booking and also create a booking
