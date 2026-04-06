@@ -12,6 +12,7 @@ import Register from './pages/Register.jsx'
 import MovieDetails from './pages/MovieDetails.jsx'
 import Shows from './pages/Shows.jsx'
 import SeatsLayout from './pages/SeatsLayout.jsx'
+import ProtectedRoute from './routes/ProtectedRoute.jsx'
 
 const router = createBrowserRouter([
   {
@@ -36,7 +37,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/shows/:showId",
-        element: <SeatsLayout/>
+        element: (
+          <ProtectedRoute>
+            <SeatsLayout/>
+          </ProtectedRoute>
+        )
       }
     ]
   }

@@ -6,14 +6,14 @@ import { useSelector } from "react-redux";
 function SeatsLayout() {
   const { showId } = useParams();
   const locationData = useLocation();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+//   const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [isAuthenticated, navigate]);
+//   useEffect(() => {
+//     if (!isAuthenticated) {
+//       navigate("/login");
+//     }
+//   }, [isAuthenticated, navigate]);
 
   const {
     price = 0,

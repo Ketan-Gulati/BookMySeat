@@ -1,4 +1,6 @@
 import { useSelector } from "react-redux"
+import LoginPopup from "../components/LoginPopup";
+import Loading from "../components/Loading"
 
 function ProtectedRoute({children}) {
     const {loading, isAuthenticated} = useSelector(state => state.auth)
