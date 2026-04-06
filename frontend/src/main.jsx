@@ -11,6 +11,7 @@ import Movies from './pages/Movies.jsx'
 import Register from './pages/Register.jsx'
 import MovieDetails from './pages/MovieDetails.jsx'
 import Shows from './pages/Shows.jsx'
+import SeatsLayout from './pages/SeatsLayout.jsx'
 
 const router = createBrowserRouter([
   {
@@ -32,12 +33,10 @@ const router = createBrowserRouter([
       {
         path: "/movie/:movieId",
         element: <MovieDetails/>,
-        children: [
-          {
-            path: "shows",
-            element: <Shows/>
-          }
-        ]
+      },
+      {
+        path: "/shows/:showId",
+        element: <SeatsLayout/>
       }
     ]
   }

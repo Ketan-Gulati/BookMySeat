@@ -19,7 +19,7 @@ instance.interceptors.response.use(
 
       try {
         // call refresh token API
-        await axios.post(
+        await axios.patch(
           "http://localhost:8000/user/refreshAccessToken",
           {},
           { withCredentials: true }
