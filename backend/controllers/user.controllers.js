@@ -152,6 +152,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Logged out successfully", {}));
 });
 
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "User fetched successfully", user));
+});
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
   const incomingRefreshToken = req.cookies?.refreshToken;
 
@@ -333,19 +341,19 @@ const lockSeats = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid seat IDs");
   }
 
-  const session = await mongoose.startSession();   //to group all DB ops
+  const session = await mongoose.startSession(); //to group all DB ops
   session.startTransaction();
 
   //for sessions and transactions we need to use try catch
   try {
     const lockedSeats = [];
-  
+
     for (let seatId of seats) {
       /* const seat = await Seat.findById(seatId);     //this line is bad for concurrency, it will lead to double bookings...we better use just atomic update with condition
       if (!seat) {                               
         throw new ApiError(404, "Seat not found");
       } */
-  
+
       const seat = await Seat.findOneAndUpdate(
         { _id: seatId, status: "AVAILABLE", show: showId },
         {
@@ -358,23 +366,23 @@ const lockSeats = asyncHandler(async (req, res) => {
           session,
         },
       );
-  
+
       if (!seat) {
         throw new ApiError(409, "Seat already booked or locked");
       }
-  
+
       lockedSeats.push(seat);
     }
-  
+
     await session.commitTransaction();
-  
+
     return res
       .status(201)
       .json(new ApiResponse(201, "Seats locked successfully", lockedSeats));
   } catch (error) {
     await session.abortTransaction();
     throw error;
-  }finally{
+  } finally {
     session.endSession();
   }
 });
@@ -472,6 +480,7 @@ export {
   registerUser,
   loginUser,
   logoutUser,
+  getCurrentUser,
   refreshAccessToken,
   getMovies,
   getMovieDesc,

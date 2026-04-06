@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   bookingHistory,
+  getCurrentUser,
   // confirmBooking,
   getMovieDesc,
   getMovies,
@@ -19,6 +20,7 @@ const router = Router();
 router.route("/register").post(registerUser);
 router.route("/login").post(loginUser);
 router.route("/logout").patch(verifyJWT, logoutUser);
+router.route("/me").get(verifyJWT, getCurrentUser);
 router.route("/refreshAccessToken").patch(refreshAccessToken);
 //movie routes
 router.route("/movies").get(getMovies);
