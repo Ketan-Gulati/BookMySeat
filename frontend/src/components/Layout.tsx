@@ -12,6 +12,7 @@ function Layout() {
    const dispatch = useDispatch();
 
   useEffect(()=>{
+    // @ts-ignore
     dispatch(getCurrentUser());
   },[]);
 

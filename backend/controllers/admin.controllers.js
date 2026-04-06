@@ -105,7 +105,7 @@ const deleteMovie = asyncHandler(async (req, res) => {
 
   if (!deleteResponse) {
     throw new ApiError(500, "Error while deleting the movie");
-  }
+  } 
 
   return res
     .status(200)

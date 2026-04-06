@@ -9,6 +9,8 @@ import Login from './pages/Login.jsx'
 import Layout from './components/Layout.js'
 import Movies from './pages/Movies.jsx'
 import Register from './pages/Register.jsx'
+import MovieDetails from './pages/MovieDetails.jsx'
+import Shows from './pages/Shows.jsx'
 
 const router = createBrowserRouter([
   {
@@ -26,6 +28,16 @@ const router = createBrowserRouter([
       {
         path: "/register",
         element: <Register/>
+      },
+      {
+        path: "/movie/:movieId",
+        element: <MovieDetails/>,
+        children: [
+          {
+            path: "shows",
+            element: <Shows/>
+          }
+        ]
       }
     ]
   }
