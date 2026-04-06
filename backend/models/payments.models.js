@@ -6,7 +6,6 @@ const paymentSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      unique: true
     },
     show: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,6 +26,7 @@ const paymentSchema = new mongoose.Schema(
     orderId: {
       type: String,
       required: true,
+      unique: true,
     },
     paymentId: {
       type: String, //payment id should not be required initially... it comes after orderId is created

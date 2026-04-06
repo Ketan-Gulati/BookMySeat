@@ -71,7 +71,6 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
 });
 
 const confirmPayment = asyncHandler(async (req, res) => {
-  console.log(req.body);
   const { orderId, paymentId, signature } = req.body; //razorpay returns these to frontend
 
   if (!orderId || !paymentId || !signature) {
@@ -88,51 +87,85 @@ const confirmPayment = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Invalid payment signature");
   }
 
-  // find payment document
-  const payment = await Payment.findOne({ orderId });
+  const session = await mongoose.startSession();
 
-  if (!payment) {
-    throw new ApiError(404, "Payment record not found");
-  }
+  try {
+    session.startTransaction();
 
-  //to prevent double verification and hence double booking
-  if (payment.status === "SUCCESS") {
-    throw new ApiError(409, "Payment already verified");
-  }
-
-  // update payment
-  payment.paymentId = paymentId;
-  payment.razorpaySignature = signature;
-  payment.status = "SUCCESS";
-
-  await payment.save();
-
-  // update seats to BOOKED
-  await Seat.updateMany(
-    { _id: { $in: payment.seats } },
-    {
-      $set: {
-        status: "BOOKED",
-        lockedBy: null,
-        lockExpiry: null,
+    //Atomically update payment....prevents race condition
+    const payment = await Payment.findOneAndUpdate(
+      {
+        orderId,
+        status: { $ne: "SUCCESS" }, // prevents duplicate processing
       },
-    },
-  );
-
-  // create booking
-  const booking = await Booking.create({
-    user: payment.user,
-    show: payment.show,
-    seats: payment.seats,
-    totalAmount: payment.amount,
-    paymentStatus: "SUCCESS",
-  });
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, "Payment verified and booking confirmed", booking),
+      {
+        $set: {
+          paymentId,
+          razorpaySignature: signature,
+          status: "SUCCESS",
+        },
+      },
+      {
+        new: true,
+        session,
+      }
     );
+
+    if (!payment) {
+      throw new ApiError(409, "Payment already processed or not found");
+    }
+
+    // update seats to BOOKED
+    const updatedSeats = await Seat.updateMany(
+      {
+        _id: { $in: payment.seats },
+        show: payment.show,
+        status: "LOCKED",
+        lockedBy: payment.user,
+        lockExpiry: { $gt: new Date() },
+      },
+      {
+        $set: {
+          status: "BOOKED",
+          lockedBy: null,
+          lockExpiry: null,
+        },
+      },
+      { session },
+    );
+
+    //check to ensure all seats are updated
+    if (updatedSeats.modifiedCount !== payment.seats.length) {
+      throw new ApiError(409, "Seat validation failed during booking");
+    }
+
+    // create booking
+    const booking = await Booking.create(
+      [
+        {
+          user: payment.user,
+          show: payment.show,
+          seats: payment.seats,
+          totalAmount: payment.amount,
+          paymentStatus: "SUCCESS",
+        },
+      ],
+      { session },
+    );
+
+    await session.commitTransaction();
+
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, "Payment verified and booking confirmed", booking[0]),
+      );
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
 });
 
 export { createPaymentOrder, confirmPayment };
