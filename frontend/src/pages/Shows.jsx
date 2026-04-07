@@ -89,7 +89,7 @@ function Shows({ onClose, movieName }) {
                       className="border border-green-400 text-green-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-green-50 hover:scale-105 active:scale-95 transition cursor-pointer"
                       onClick={() =>
                         navigate(`/shows/${show.showId}`, {
-                          state: { price: show.price, theatreName: theatre.theatreName , theatreLocation: theatre.location, time: show.time, movieName : movieName },
+                          state: { price: show.price, theatreName: theatre.theatreName , location: theatre.location, time: show.time, movieName : movieName },
                         })
                       }
                     >

@@ -6,14 +6,14 @@ import { useSelector } from "react-redux";
 function SeatsLayout() {
   const { showId } = useParams();
   const locationData = useLocation();
-//   const { isAuthenticated } = useSelector((state) => state.auth);
+  //   const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
-//   useEffect(() => {
-//     if (!isAuthenticated) {
-//       navigate("/login");
-//     }
-//   }, [isAuthenticated, navigate]);
+  //   useEffect(() => {
+  //     if (!isAuthenticated) {
+  //       navigate("/login");
+  //     }
+  //   }, [isAuthenticated, navigate]);
 
   const {
     price = 0,
@@ -71,7 +71,7 @@ function SeatsLayout() {
 
   // Toggle seat
   const toggleSeat = (seat) => {
-    if (seat.isBooked) return;
+    if (seat.status === "BOOKED") return;
 
     const exists = selectedSeats.find((s) => s._id === seat._id);
 
@@ -90,6 +90,30 @@ function SeatsLayout() {
   };
 
   const totalPrice = selectedSeats.length * price;
+
+  const handleProceed = async()=>{
+    try {
+      await api.post("/user/seats/lock", {
+        showId,
+        seats: selectedSeats.map((s)=>s._id)
+      })
+
+      navigate("/checkout", {
+        state:{
+          selectedSeats,
+          movieName,
+          theatreName,
+          location,
+          time,
+          totalPrice,
+          showId
+        }
+      })
+
+    } catch (error) {
+      alert("Some seats are no longer available");
+    }
+  }
 
   if (loading) {
     return (
@@ -151,16 +175,20 @@ function SeatsLayout() {
 
                     <button
                       onClick={() => toggleSeat(seat)}
-                      disabled={seat.isBooked}
+                      disabled={
+                        seat.status === "BOOKED" || seat.status === "LOCKED"
+                      }
                       className={`w-9 h-9 rounded-md text-xs font-medium transition
-                        ${
-                          seat.isBooked
-                            ? "bg-gray-300 cursor-not-allowed"
-                            : isSelected
-                              ? "bg-blue-500 text-white"
-                              : "bg-green-100 text-green-700 hover:bg-green-200"
-                        }
-                      `}
+                            ${
+                              seat.status === "BOOKED"
+                                ? "bg-gray-300 cursor-not-allowed"
+                                : seat.status === "LOCKED"
+                                  ? "bg-yellow-200 text-yellow-800 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-green-100 text-green-700 hover:bg-green-200"
+                            }
+                        `}
                     >
                       {seat.seatNumber.slice(1)}
                     </button>
@@ -186,7 +214,7 @@ function SeatsLayout() {
 
         <div className="flex items-center gap-2">
           <div className="w-4 h-4 bg-gray-300 rounded"></div>
-          Booked
+          "BOOKED"{" "}
         </div>
       </div>
 
@@ -200,7 +228,7 @@ function SeatsLayout() {
             <p className="font-semibold text-lg">₹{totalPrice}</p>
           </div>
 
-          <button className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium">
+          <button onClick={()=> handleProceed()} className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-medium">
             Proceed
           </button>
         </div>
