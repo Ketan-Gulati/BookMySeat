@@ -1,8 +1,10 @@
 import React from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import api from "../services/axios";
 
 function Checkout() {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const {
     selectedSeats = [],
@@ -11,9 +13,9 @@ function Checkout() {
     theatreName = "",
     location: theatreLocation = "",
     time = "",
+    showId = "",
   } = location.state || {};
 
-  // Format time
   const formatTime = (iso) => {
     if (!iso) return "";
     return new Date(iso).toLocaleTimeString("en-IN", {
@@ -22,34 +24,98 @@ function Checkout() {
     });
   };
 
+  const handleConfirmPayment = async () => {
+    try {
+      // 1. Create Order
+      const res = await api.post("/payments/create-order", {
+        showId,
+        seats: selectedSeats.map((s) => s._id),
+      });
+
+      const { orderId, amount, currency } = res.data.data;
+
+      // 2. Razorpay Options
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY,
+        amount,
+        currency,
+        order_id: orderId,
+        //runs after payment done
+        handler: async function (response) {
+          console.log("Res", response);
+          try {
+            const res = await api.post("/payments/verify", {
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+            });
+
+            const booking = res.data.data;
+
+            navigate("/booking-success", {
+              state: {
+                selectedSeats,
+                movieName,
+                theatreName,
+                theatreLocation,
+                time,
+                totalPrice,
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+              },
+            });
+          } catch (err) {
+            alert("Payment verification failed");
+          }
+        },
+
+        name: movieName,
+        description: "Movie Ticket Booking",
+
+        prefill: {
+          name: "User",
+          email: "user@example.com",
+        },
+
+        theme: {
+          color: "#ef4444",
+        },
+      };
+
+      // 3. Open Razorpay
+      const rzp = new window.Razorpay(options);
+
+      // 4. Handle failure
+      rzp.on("payment.failed", function () {
+        alert("Payment Failed");
+      });
+
+      rzp.open();
+    } catch (error) {
+      console.log(error);
+      alert("Something went wrong while initiating payment");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
-
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md p-6">
-
-        {/* HEADER */}
         <h2 className="text-2xl font-semibold mb-5 text-gray-900">
           Booking Summary
         </h2>
 
-        {/* MOVIE DETAILS */}
         <div className="mb-5">
-          <h3 className="text-lg font-semibold text-gray-800">
-            {movieName}
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-800">{movieName}</h3>
 
           <p className="text-sm text-gray-600">
             {theatreName} • {theatreLocation}
           </p>
 
-          <p className="text-sm text-gray-500 mt-1">
-            ⏰ {formatTime(time)}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">⏰ {formatTime(time)}</p>
         </div>
 
         <hr className="my-4" />
 
-        {/* SEATS */}
         <div className="mb-4">
           <p className="text-sm text-gray-500">Selected Seats</p>
 
@@ -65,19 +131,6 @@ function Checkout() {
           </div>
         </div>
 
-        {/* PRICE DETAILS */}
-        <div className="space-y-2 text-sm text-gray-700">
-
-          <div className="flex justify-between">
-            <span>Number of seats</span>
-            <span>{selectedSeats.length}</span>
-          </div>
-
-        </div>
-
-        <hr className="my-4" />
-
-        {/* TOTAL */}
         <div className="flex justify-between items-center mb-6">
           <span className="text-lg font-semibold">Total Amount</span>
           <span className="text-xl font-bold text-green-600">
@@ -85,11 +138,12 @@ function Checkout() {
           </span>
         </div>
 
-        {/* BUTTON */}
-        <button className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-medium transition">
+        <button
+          onClick={handleConfirmPayment}
+          className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-medium transition"
+        >
           Confirm & Pay
         </button>
-
       </div>
     </div>
   );

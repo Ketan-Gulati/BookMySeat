@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import crypto from "crypto";
 import { Booking } from "../models/bookings.models.js";
+import mongoose from "mongoose";
 
 const createPaymentOrder = asyncHandler(async (req, res) => {
   const { showId, seats } = req.body;
@@ -72,6 +73,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
 
 const confirmPayment = asyncHandler(async (req, res) => {
   const { orderId, paymentId, signature } = req.body; //razorpay returns these to frontend
+  console.log("Req body", req.body);
 
   if (!orderId || !paymentId || !signature) {
     throw new ApiError(400, "Payment verification failed");

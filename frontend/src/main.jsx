@@ -14,6 +14,7 @@ import Shows from "./pages/Shows.jsx";
 import SeatsLayout from "./pages/SeatsLayout.jsx";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import Checkout from "./pages/Checkout.jsx";
+import BookingSuccess from "./pages/BookingSuccess.jsx";
 
 const router = createBrowserRouter([
   {
@@ -52,6 +53,12 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: "/booking-success",
+        element: <ProtectedRoute>
+          <BookingSuccess/>
+        </ProtectedRoute>
+      }
     ],
   },
 ]);
