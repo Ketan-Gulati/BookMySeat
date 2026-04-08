@@ -402,11 +402,13 @@ const createBookingSession = asyncHandler(async (req, res) => {
   const seatsFromDB = await Seat.find({
     _id: { $in: seats },
   });
-  if(seatsFromDB.length !== seats.length){
+  if (seatsFromDB.length !== seats.length) {
     throw new ApiError(400, "Invalid seats");
   }
-  const invalidSeat = seatsFromDB.find((seat)=>seat.show.toString() !== showId);
-  if(invalidSeat){
+  const invalidSeat = seatsFromDB.find(
+    (seat) => seat.show.toString() !== showId,
+  );
+  if (invalidSeat) {
     throw ApiError(400, "Some seats do not belong to the show");
   }
 
@@ -444,6 +446,29 @@ const createBookingSession = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "Session Ready", sessionDoc));
+});
+
+//find active session for user
+const getActiveSession = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const session = Session.findOne({
+    user: userId,
+    status: "PENDING",
+    expiresAt: { $gt: new Date() },
+  })
+    .populate("show")
+    .populate("seats");
+
+  if (!session) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "No active session", null));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Active session found", session));
 });
 
 //after payment succeeds, confirm booking and also create a booking
@@ -547,6 +572,7 @@ export {
   getShowSeats,
   lockSeats,
   createBookingSession,
+  getActiveSession,
   // confirmBooking,
   bookingHistory,
 };
