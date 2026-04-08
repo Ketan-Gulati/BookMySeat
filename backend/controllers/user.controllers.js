@@ -9,6 +9,7 @@ import mongoose from "mongoose";
 import { Show } from "../models/show.models.js";
 import { Seat } from "../models/seat.models.js";
 import { Booking } from "../models/bookings.models.js";
+import { Session } from "../models/session.models.js";
 
 ////auth logic
 
@@ -387,6 +388,64 @@ const lockSeats = asyncHandler(async (req, res) => {
   }
 });
 
+//create a booking session
+const createBookingSession = asyncHandler(async (req, res) => {
+  const { showId, seats } = req.body;
+
+  if (!Array.isArray(seats) || seats.length === 0) {
+    throw new ApiError(400, "Invalid Seats");
+  }
+
+  const sortedSeats = [...seats].sort(); //normalize seats ie sort to ensures consistency
+
+  //validate seats
+  const seatsFromDB = await Seat.find({
+    _id: { $in: seats },
+  });
+  if(seatsFromDB.length !== seats.length){
+    throw new ApiError(400, "Invalid seats");
+  }
+  const invalidSeat = seatsFromDB.find((seat)=>seat.show.toString() !== showId);
+  if(invalidSeat){
+    throw ApiError(400, "Some seats do not belong to the show");
+  }
+
+  const bookingKey = `${req.user._id}_${showId}_${sortedSeats.join(",")}`; //create a unique booking key
+
+  let sessionDoc;
+
+  try {
+    // try creating a new session
+    sessionDoc = await Session.create({
+      user: req.user._id,
+      show: showId,
+      seats: sortedSeats,
+      status: "PENDING",
+      bookingKey,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    });
+  } catch (error) {
+    //handle duplicate session(race condition/double clicking)
+    if (error.code === 11000) {
+      sessionDoc = await Session.findOne({
+        bookingKey,
+        status: "PENDING",
+        expiresAt: { $gt: new Date() },
+      });
+
+      if (!sessionDoc) {
+        throw new ApiError(409, "Session conflict, please try again");
+      }
+    } else {
+      throw error;
+    }
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Session Ready", sessionDoc));
+});
+
 //after payment succeeds, confirm booking and also create a booking
 /* const confirmBooking = asyncHandler(async (req, res) => {
   const { showId, lockedSeats } = req.body;
@@ -487,6 +546,7 @@ export {
   getShowsByMovieId,
   getShowSeats,
   lockSeats,
+  createBookingSession,
   // confirmBooking,
   bookingHistory,
 };

@@ -8,43 +8,73 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import crypto from "crypto";
 import { Booking } from "../models/bookings.models.js";
 import mongoose from "mongoose";
+import { Session } from "../models/session.models.js";
 
 const createPaymentOrder = asyncHandler(async (req, res) => {
-  const { showId, seats } = req.body;
+  const { sessionId } = req.body;
 
   //   console.log("Before creating order");
 
-  if (!showId) {
+  /* if (!showId) {
     throw new ApiError(400, "ShowId is required");
   }
 
   if (!Array.isArray(seats)) {
     throw new ApiError(400, "Seats should be an array");
+  } */
+
+  /* if (seats.length === 0) {
+    throw new ApiError(400, "No seats selected");
+  } */
+
+  if (!sessionId) {
+    throw new ApiError(400, "SessionId is required");
   }
 
-  if (seats.length === 0) {
-    throw new ApiError(400, "No seats selected");
+  const sessionDoc = await Session.findById(sessionId);
+
+  if (!sessionDoc) {
+    throw new ApiError(404, "Session not found");
+  }
+
+  //validate session
+  if (sessionDoc.status !== "PENDING") {
+    throw new ApiError(400, "Session is not active");
+  }
+  if (sessionDoc.expiresAt < new Date()) {
+    throw new ApiError(400, "Session expired");
+  }
+
+  //if session already exists then reuse it
+  if (sessionDoc.orderId) {
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, "Order already exists", {
+          orderId: sessionDoc.orderId,
+        }),
+      );
   }
 
   //verify that seats are locked by this user only
   const lockedSeats = await Seat.find({
-    _id: { $in: seats },
+    _id: { $in: sessionDoc.seats },
     status: "LOCKED",
     lockedBy: req.user._id,
     lockExpiry: { $gt: new Date() },
   });
 
-  if (lockedSeats.length !== seats.length) {
+  if (lockedSeats.length !== sessionDoc.seats.length) {
     throw new ApiError(409, "Some seats are not locked");
   }
 
-  const show = await Show.findById(showId);
+  const show = await Show.findById(sessionDoc.show);
 
   if (!show) {
     throw new ApiError(404, "Show not found");
   }
 
-  const amount = show.price * seats.length;
+  const amount = show.price * sessionDoc.seats.length;
 
   //create razorpay order
   const order = await instance.orders.create({
@@ -53,14 +83,23 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
     receipt: `receipt_${Date.now()}`,
   });
 
-  // store payment record
-  await Payment.create({
-    user: req.user._id,
-    show: showId,
-    seats,
-    amount,
+  sessionDoc.orderId = order.id;
+  await sessionDoc.save();
+
+  //check whether payment already exists
+  const exists = await Payment.find({
     orderId: order.id,
   });
+  // store payment record
+  if (!exists) {
+    await Payment.create({
+      user: req.user._id,
+      show: sessionDoc.show,
+      seats: sessionDoc.seats,
+      amount,
+      orderId: order.id,
+    });
+  }
 
   return res.status(200).json(
     new ApiResponse(200, "Payment order created", {
@@ -110,7 +149,7 @@ const confirmPayment = asyncHandler(async (req, res) => {
       {
         new: true,
         session,
-      }
+      },
     );
 
     if (!payment) {
@@ -155,12 +194,28 @@ const confirmPayment = asyncHandler(async (req, res) => {
       { session },
     );
 
+    await Session.findOneAndUpdate(
+      {
+        orderId,
+      },
+      {
+        status: "SUCCESS",
+      },
+      {
+        session,
+      },
+    );
+
     await session.commitTransaction();
 
     return res
       .status(200)
       .json(
-        new ApiResponse(200, "Payment verified and booking confirmed", booking[0]),
+        new ApiResponse(
+          200,
+          "Payment verified and booking confirmed",
+          booking[0],
+        ),
       );
   } catch (error) {
     await session.abortTransaction();

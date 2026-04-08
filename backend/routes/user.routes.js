@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   bookingHistory,
+  createBookingSession,
   getCurrentUser,
   // confirmBooking,
   getMovieDesc,
@@ -30,6 +31,7 @@ router.route("/movies/:movieId/shows").get(getShowsByMovieId);
 //seat and seat locking
 router.route("/shows/:showId/seat-layout").get(verifyJWT, getShowSeats);
 router.route("/seats/lock").post(verifyJWT, lockSeats)
+router.route("/booking-session").post(verifyJWT, createBookingSession)
 
 /* //confirm booking
 router.route("/booking/confirm").post(verifyJWT, confirmBooking) */
