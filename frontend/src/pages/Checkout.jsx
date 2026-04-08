@@ -7,6 +7,7 @@ function Checkout() {
   const navigate = useNavigate();
 
   const {
+    sessionId = "",
     selectedSeats = [],
     totalPrice = 0,
     movieName = "",
@@ -28,8 +29,7 @@ function Checkout() {
     try {
       // 1. Create Order
       const res = await api.post("/payments/create-order", {
-        showId,
-        seats: selectedSeats.map((s) => s._id),
+        sessionId
       });
 
       const { orderId, amount, currency } = res.data.data;

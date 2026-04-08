@@ -3,7 +3,7 @@ import { Seat } from "../models/seat.models.js";
 export const generateSeats = async (showId, totalSeats)=>{
     const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
     let seats = [];
-    const seatsPerRow = 19;
+    const seatsPerRow = 18;
     let counter = 0;
 
     for(let row of rows){

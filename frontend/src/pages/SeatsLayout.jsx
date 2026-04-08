@@ -98,8 +98,17 @@ function SeatsLayout() {
         seats: selectedSeats.map((s)=>s._id)
       })
 
+      const res = await api.post("/user/booking-session", {
+        showId,
+        seats: selectedSeats.map((s)=>s._id)
+      });
+
+      const sessionId = res.data.data._id;
+      // console.log(res.data.data)
+
       navigate("/checkout", {
         state:{
+          sessionId,
           selectedSeats,
           movieName,
           theatreName,

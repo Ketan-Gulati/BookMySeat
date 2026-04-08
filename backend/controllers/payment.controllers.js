@@ -87,7 +87,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
   await sessionDoc.save();
 
   //check whether payment already exists
-  const exists = await Payment.find({
+  const exists = await Payment.findOne({
     orderId: order.id,
   });
   // store payment record
@@ -112,7 +112,7 @@ const createPaymentOrder = asyncHandler(async (req, res) => {
 
 const confirmPayment = asyncHandler(async (req, res) => {
   const { orderId, paymentId, signature } = req.body; //razorpay returns these to frontend
-  console.log("Req body", req.body);
+  // console.log("Req body", req.body);
 
   if (!orderId || !paymentId || !signature) {
     throw new ApiError(400, "Payment verification failed");

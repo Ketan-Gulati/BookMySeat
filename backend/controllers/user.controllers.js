@@ -414,6 +414,12 @@ const createBookingSession = asyncHandler(async (req, res) => {
 
   const bookingKey = `${req.user._id}_${showId}_${sortedSeats.join(",")}`; //create a unique booking key
 
+  //delete previous sessions of user -> user can only have 1 active session
+  await Session.deleteMany({
+    user: req.user._id,
+    status: "PENDING"
+  })
+
   let sessionDoc;
 
   try {
@@ -452,12 +458,19 @@ const createBookingSession = asyncHandler(async (req, res) => {
 const getActiveSession = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
-  const session = Session.findOne({
+  const session = await Session.findOne({
     user: userId,
     status: "PENDING",
     expiresAt: { $gt: new Date() },
   })
-    .populate("show")
+    .populate({
+      path: "show",
+      populate: [
+        {path: "movie"},
+        {path: "theatre"}
+      ]
+    } 
+    )
     .populate("seats");
 
   if (!session) {

@@ -250,7 +250,7 @@ const createShow = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Theatre does not exist");
   }
 
-  const existingShow = await Show.findOne({ theatre, showDateTime });
+  const existingShow = await Show.findOne({ movie, theatre, showDateTime });
   if (existingShow) {
     throw new ApiError(409, "Show already exists for this time");
   }

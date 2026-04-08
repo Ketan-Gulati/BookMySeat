@@ -4,8 +4,9 @@ import Movies from "../pages/Movies"
 import Navbar from "./Navbar"
 import Footer from "./Footer"
 import { useDispatch } from "react-redux"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { getCurrentUser } from "../store/auth.slice"
+
 
 function Layout() {
 
