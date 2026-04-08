@@ -20,7 +20,7 @@ instance.interceptors.response.use(
       try {
         // call refresh token API
         await axios.patch(
-          "http://localhost:8000/user/refreshAccessToken",
+          "https://bookmyseat-iuy2.onrender.com",
           {},
           { withCredentials: true }
         );
