@@ -412,46 +412,80 @@ const createBookingSession = asyncHandler(async (req, res) => {
     throw ApiError(400, "Some seats do not belong to the show");
   }
 
-  const bookingKey = `${req.user._id}_${showId}_${sortedSeats.join(",")}`; //create a unique booking key
+  const bookingKey = `${req.user._id}_${showId}_${sortedSeats.join(",")}`; //create a unique booking key4
 
-  //delete previous sessions of user -> user can only have 1 active session
-  await Session.deleteMany({
-    user: req.user._id,
-    status: "PENDING"
-  })
-
-  let sessionDoc;
+  const session = await mongoose.startSession();
 
   try {
-    // try creating a new session
-    sessionDoc = await Session.create({
+    session.startTransaction();
+
+    const oldSession = await Session.findOne({
       user: req.user._id,
-      show: showId,
-      seats: sortedSeats,
       status: "PENDING",
-      bookingKey,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-    });
-  } catch (error) {
-    //handle duplicate session(race condition/double clicking)
-    if (error.code === 11000) {
-      sessionDoc = await Session.findOne({
-        bookingKey,
-        status: "PENDING",
-        expiresAt: { $gt: new Date() },
-      });
+      expiresAt: { $gt: new Date() },
+    }).session(session);
 
-      if (!sessionDoc) {
-        throw new ApiError(409, "Session conflict, please try again");
-      }
-    } else {
-      throw error;
+    if (oldSession) {
+      await Seat.updateMany(
+        {
+          _id: { $in: oldSession.seats },
+          lockedBy: req.user._id,
+          status: "LOCKED",
+        },
+        {
+          status: "AVAILABLE",
+          lockedBy: null,
+          expiresAt: null,
+        },
+        {
+          session,
+        },
+      );
     }
-  }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Session Ready", sessionDoc));
+    //delete previous sessions of user -> user can only have 1 active session
+    await Session.deleteOne({ _id: oldSession._id }).session(session);
+
+    let sessionDoc;
+
+    try {
+      // try creating a new session
+      sessionDoc = await Session.create({
+        user: req.user._id,
+        show: showId,
+        seats: sortedSeats,
+        status: "PENDING",
+        bookingKey,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+    } catch (error) {
+      //handle duplicate session(race condition/double clicking)
+      if (error.code === 11000) {
+        sessionDoc = await Session.findOne({
+          bookingKey,
+          status: "PENDING",
+          expiresAt: { $gt: new Date() },
+        });
+
+        if (!sessionDoc) {
+          throw new ApiError(409, "Session conflict, please try again");
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    await session.commitTransaction();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Session created"), sessionDoc);
+  } catch (error) {
+    session.abortTransaction();
+    throw error;
+  }finally{
+    session.endSession();
+  }
 });
 
 //find active session for user
@@ -465,12 +499,8 @@ const getActiveSession = asyncHandler(async (req, res) => {
   })
     .populate({
       path: "show",
-      populate: [
-        {path: "movie"},
-        {path: "theatre"}
-      ]
-    } 
-    )
+      populate: [{ path: "movie" }, { path: "theatre" }],
+    })
     .populate("seats");
 
   if (!session) {
