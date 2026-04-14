@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../services/axios";
 
 function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [disabled, setDisabled] = useState(false);
 
   const {
     sessionId = "",
@@ -26,6 +28,7 @@ function Checkout() {
   };
 
   const handleConfirmPayment = async () => {
+    setDisabled(true);
     try {
       // 1. Create Order
       const res = await api.post("/payments/create-order", {
@@ -95,6 +98,7 @@ function Checkout() {
       console.log(error);
       alert("Something went wrong while initiating payment");
     }
+    setDisabled(false);
   };
 
   return (
@@ -141,6 +145,7 @@ function Checkout() {
         <button
           onClick={handleConfirmPayment}
           className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-medium transition"
+          disabled={disabled}
         >
           Confirm & Pay
         </button>
