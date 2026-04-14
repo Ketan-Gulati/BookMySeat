@@ -32,7 +32,7 @@ function Checkout() {
     try {
       // 1. Create Order
       const res = await api.post("/payments/create-order", {
-        sessionId
+        sessionId,
       });
 
       const { orderId, amount, currency } = res.data.data;
@@ -69,6 +69,8 @@ function Checkout() {
             });
           } catch (err) {
             alert("Payment verification failed");
+          } finally {
+            setDisabled(false);
           }
         },
 
@@ -91,6 +93,7 @@ function Checkout() {
       // 4. Handle failure
       rzp.on("payment.failed", function () {
         alert("Payment Failed");
+        setDisabled(false);
       });
 
       rzp.open();
@@ -98,7 +101,6 @@ function Checkout() {
       console.log(error);
       alert("Something went wrong while initiating payment");
     }
-    setDisabled(false);
   };
 
   return (
