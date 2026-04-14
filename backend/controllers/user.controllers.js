@@ -409,7 +409,7 @@ const createBookingSession = asyncHandler(async (req, res) => {
     (seat) => seat.show.toString() !== showId,
   );
   if (invalidSeat) {
-    throw ApiError(400, "Some seats do not belong to the show");
+    throw new ApiError(400, "Some seats do not belong to the show");
   }
 
   const bookingKey = `${req.user._id}_${showId}_${sortedSeats.join(",")}`; //create a unique booking key4
@@ -435,29 +435,36 @@ const createBookingSession = asyncHandler(async (req, res) => {
         {
           status: "AVAILABLE",
           lockedBy: null,
-          expiresAt: null,
+          lockExpiry: null,
         },
         {
           session,
         },
       );
-    }
 
-    //delete previous sessions of user -> user can only have 1 active session
-    await Session.deleteOne({ _id: oldSession._id }).session(session);
+      //delete previous sessions of user -> user can only have 1 active session
+      await Session.deleteOne({ _id: oldSession._id }).session(session);
+    }
 
     let sessionDoc;
 
     try {
       // try creating a new session
-      sessionDoc = await Session.create({
-        user: req.user._id,
-        show: showId,
-        seats: sortedSeats,
-        status: "PENDING",
-        bookingKey,
-        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      });
+      sessionDoc = await Session.create(
+        [
+          {
+            user: req.user._id,
+            show: showId,
+            seats: sortedSeats,
+            status: "PENDING",
+            bookingKey,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          },
+        ],
+        { session },
+      );
+
+      sessionDoc = sessionDoc[0];
     } catch (error) {
       //handle duplicate session(race condition/double clicking)
       if (error.code === 11000) {
@@ -465,7 +472,7 @@ const createBookingSession = asyncHandler(async (req, res) => {
           bookingKey,
           status: "PENDING",
           expiresAt: { $gt: new Date() },
-        });
+        }).session(session);
 
         if (!sessionDoc) {
           throw new ApiError(409, "Session conflict, please try again");
@@ -479,11 +486,11 @@ const createBookingSession = asyncHandler(async (req, res) => {
 
     return res
       .status(200)
-      .json(new ApiResponse(200, "Session created"), sessionDoc);
+      .json(new ApiResponse(200, "Session created", sessionDoc));
   } catch (error) {
-    session.abortTransaction();
+    await session.abortTransaction();
     throw error;
-  }finally{
+  } finally {
     session.endSession();
   }
 });
