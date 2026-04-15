@@ -31,14 +31,5 @@ app.use("/admin", adminRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/api/v1", healthRoute);
 
-//for fallback load
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-// Static frontend (after routes)
-app.use(express.static(path.join(__dirname, "../client/dist")));
-// SPA fallback (LAST ALWAYS)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
-});
 
 export {app};
