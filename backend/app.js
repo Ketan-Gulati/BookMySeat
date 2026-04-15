@@ -17,6 +17,13 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
+//for fallback load
+const path = require("path");
+app.use(express.static(path.join(__dirname, "../client/dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+});
+
 
 //import routes
 import userRoutes from "./routes/user.routes.js"
