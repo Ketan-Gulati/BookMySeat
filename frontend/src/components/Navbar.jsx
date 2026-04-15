@@ -10,6 +10,9 @@ export default function Navbar() {
   const { user, loading } = useSelector((state) => state.auth);
   const [open, setOpen] = useState(false);
 
+  //auth state to use for admin login
+  const isAdmin = user?.role == "ADMIN" ? true : false;
+
   const handleLogout = async () => {
     await dispatch(logoutUser());
     setOpen(false);
@@ -46,6 +49,16 @@ export default function Navbar() {
           <div className="relative flex items-center gap-5">
             {/* Location */}
             <div className="hidden sm:flex text-sm text-gray-600">📍 Delhi</div>
+
+            {/* admin dashboard button */}
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/admin-dashboard")}
+                className="bg-black text-white px-4 py-2 rounded-full text-sm hover:bg-gray-800 transition"
+              >
+                Dashboard
+              </button>
+            )}
 
             {/* AUTH */}
             {loading ? (

@@ -6,6 +6,8 @@ import Footer from "./Footer"
 import { useDispatch } from "react-redux"
 import { useEffect, useState } from "react"
 import { getCurrentUser } from "../store/auth.slice"
+import { Toaster } from "react-hot-toast";
+
 
 
 function Layout() {
@@ -19,6 +21,7 @@ function Layout() {
 
   return (
     <>
+      <Toaster position="top-right" />
         <Navbar/>
         <Outlet/>
         <Footer/>

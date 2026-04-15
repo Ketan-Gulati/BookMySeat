@@ -14,6 +14,7 @@ function Movies() {
   const location = useLocation();
   // console.log(session);
 
+  
   //track time
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {

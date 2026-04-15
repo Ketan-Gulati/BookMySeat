@@ -16,6 +16,8 @@ import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import BookingSuccess from "./pages/BookingSuccess.jsx";
 import BookingHistory from "./pages/BookingHistory.jsx";
+import AdminRoute from "./routes/AdminRoute.jsx";
+import AdminDashboard from "./pages/AdminDashboard.jsx";
 
 const router = createBrowserRouter([
   {
@@ -65,6 +67,12 @@ const router = createBrowserRouter([
         element: <ProtectedRoute>
           <BookingHistory/>
         </ProtectedRoute>
+      },
+      {
+        path: "/admin-dashboard",
+        element: <AdminRoute>
+          <AdminDashboard/>
+        </AdminRoute>
       }
     ],
   },
