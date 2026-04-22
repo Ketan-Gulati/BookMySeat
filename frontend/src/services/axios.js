@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "https://bookmyseat-iuy2.onrender.com/",
+  baseURL: "https://bookmyseat-production.up.railway.app",
   withCredentials: true
 });
 

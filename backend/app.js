@@ -9,7 +9,8 @@ const app = express();
 
 app.use(cors({
     origin: ["http://localhost:5173",
-        "https://book-my-seat-weld.vercel.app"
+        "https://book-my-seat-weld.vercel.app",
+        "https://bookmyseat-production.up.railway.app"
     ],
     credentials: true,
 }))
