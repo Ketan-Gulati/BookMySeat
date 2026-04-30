@@ -41,6 +41,12 @@ function SeatsLayout() {
 
   useEffect(() => {
     fetchSeats();
+
+    const interval = setInterval(() => {
+    fetchSeats(); // polling
+  }, 5000); // every 5 seconds
+
+   return () => clearInterval(interval); // cleanup
   }, [showId]);
 
   // Format time
