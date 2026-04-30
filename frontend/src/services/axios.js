@@ -20,7 +20,7 @@ instance.interceptors.response.use(
       try {
         // call refresh token API
         await axios.patch(
-          "https://bookmyseat-iuy2.onrender.com/user/refreshAccessToken",
+          "https://bookmyseat-production.up.railway.app/user/refreshAccessToken",
           {},
           { withCredentials: true }
         );
