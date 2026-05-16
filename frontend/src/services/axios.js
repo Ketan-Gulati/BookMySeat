@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "https://bookmyseat-production.up.railway.app",
+  baseURL: "https://bookmyseat-iuy2.onrender.com",
   withCredentials: true
 });
 
@@ -20,7 +20,7 @@ instance.interceptors.response.use(
       try {
         // call refresh token API
         await axios.patch(
-          "https://bookmyseat-production.up.railway.app/user/refreshAccessToken",
+          "https://bookmyseat-iuy2.onrender.com/user/refreshAccessToken",
           {},
           { withCredentials: true }
         );
